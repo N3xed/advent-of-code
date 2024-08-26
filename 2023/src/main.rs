@@ -31,87 +31,59 @@ fn day1(data: &str) -> anyhow::Result<()> {
     }
 
     impl DigitParser {
-        const DIGITS: [(&'static [u8], usize); 9] = [
-            (b"three", 3),
-            (b"seven", 7),
-            (b"eight", 8),
-            (b"four", 4),
-            (b"five", 5),
-            (b"nine", 9),
-            (b"one", 1),
-            (b"two", 2),
-            (b"six", 6),
+        const DIGITS: [&'static [u8]; 9] = [
+            b"one", b"two", b"three", b"four", b"five", b"six", b"seven", b"eight", b"nine",
         ];
 
         fn new() -> Self {
             Self { pos: [0; 9] }
         }
 
-        fn parse<const REV: bool>(&mut self, c: char) -> Option<usize> {
-            let get_c = if REV {
-                |i: usize, p: usize| Self::DIGITS[i].0[Self::DIGITS[i].0.len() - 1 - p] as char
-            } else {
-                |i: usize, p: usize| Self::DIGITS[i].0[p] as char
-            };
+        fn parse(&mut self, c: char) -> Option<usize> {
+            let mut res = None;
 
             for (i, pos) in self.pos.iter_mut().enumerate() {
-                let n = Self::DIGITS[i].1;
-                if c == get_c(i, *pos as usize) {
+                let num_c = Self::DIGITS[i][*pos as usize] as char;
+                if c == num_c {
                     *pos += 1;
 
-                    if *pos as usize >= Self::DIGITS[i].0.len() {
-                        return Some(n);
+                    if *pos as usize >= Self::DIGITS[i].len() {
+                        *pos = 0;
+                        assert_eq!(res, None);
+                        res = Some(i + 1);
                     }
                 } else {
-                    *pos = 0;
+                    let num_c = Self::DIGITS[i][0] as char;
+                    *pos = (c == num_c) as u8;
                 }
             }
-            None
+            return res;
         }
     }
 
     let sum: usize = data
         .lines()
-        .enumerate()
-        .map(|(i, l)| {
+        .map(|l| {
             if l.is_empty() {
                 return 0;
             }
 
             let mut p = DigitParser::new();
-            let (c1, i1) = l
-                .char_indices()
-                .find_map(|(i, c)| {
-                    if c.is_ascii_digit() {
-                        Some((c as usize - '0' as usize, i))
-                    } else if let Some(d) = p.parse::<false>(c) {
-                        Some((d, i))
-                    } else {
-                        None
-                    }
-                })
-                .expect("first must be present");
+            let mut iter = l.chars().filter_map(|c| {
+                if c.is_ascii_digit() {
+                    p.parse(c);
+                    Some(c as usize - '0' as usize)
+                } else if let Some(d) = p.parse(c) {
+                    Some(d)
+                } else {
+                    None
+                }
+            });
 
-            p = DigitParser::new();
-            let c2 = l
-                .char_indices()
-                .rev()
-                .find_map(|(i, c)| {
-                    if i <= i1 {
-                        return None;
-                    }
-                    if c.is_ascii_digit() {
-                        Some(c as usize - '0' as usize)
-                    } else if let Some(d) = p.parse::<true>(c) {
-                        Some(d)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(c1);
+            let d1 = iter.next().expect("at least one digit per line");
+            let d2 = iter.last().unwrap_or(d1);
 
-            let r = c1 * 10 + c2;
-
+            let r = 10 * d1 + d2;
             r
         })
         .sum();
