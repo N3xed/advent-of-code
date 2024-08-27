@@ -10,22 +10,26 @@ struct Args {
 
 #[derive(clap::Subcommand, Clone)]
 enum Command {
-    D1 { file: PathBuf },
+    D1 {
+        file: PathBuf,
+        #[clap(long)]
+        p1: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     match args.cmd {
-        Command::D1 { file } => {
-            day1(&std::fs::read_to_string(file)?)?;
+        Command::D1 { file, p1 } => {
+            day1(&std::fs::read_to_string(file)?, p1)?;
         }
     }
 
     Ok(())
 }
 
-fn day1(data: &str) -> anyhow::Result<()> {
+fn day1(data: &str, p1: bool) -> anyhow::Result<()> {
     struct DigitParser {
         pos: [u8; 9],
     }
@@ -69,7 +73,15 @@ fn day1(data: &str) -> anyhow::Result<()> {
             }
 
             let mut p = DigitParser::new();
-            let mut iter = l.chars().filter_map(|c| {
+            let mut iter = l.chars().filter_map(move |c: char| {
+                if p1 {
+                    return if c.is_ascii_digit() {
+                        Some(c as usize - '0' as usize)
+                    } else {
+                        None
+                    };
+                }
+
                 if c.is_ascii_digit() {
                     p.parse(c);
                     Some(c as usize - '0' as usize)
