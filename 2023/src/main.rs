@@ -12,17 +12,27 @@ struct Args {
 
 #[derive(clap::Subcommand, Clone)]
 enum Command {
+    /// Day 1.
     D1 {
+        /// Puzzle input.
         file: PathBuf,
+        /// Run problem two.
         #[clap(long)]
         p1: bool,
     },
+    /// Day 2.
     D2 {
+        /// Puzzle input.
         file: PathBuf,
+
+        /// Number of red cubes.
         r: Option<usize>,
+        /// Number of green cubes.
         g: Option<usize>,
+        /// Number of blue cubes.
         b: Option<usize>,
 
+        /// Run problem two.
         #[clap(long)]
         p2: bool,
     },
