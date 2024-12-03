@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 mod day1;
 mod day2;
+mod day3;
 
 #[derive(Parser)]
 struct Args {
@@ -28,6 +29,14 @@ enum Command {
         #[clap(long)]
         p1: bool,
     },
+    /// Day 3.
+    D3 {
+        /// Puzzle input.
+        file: PathBuf,
+        /// Run problem one.
+        #[clap(long)]
+        p1: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -39,6 +48,9 @@ fn main() -> anyhow::Result<()> {
         }
         Command::D2 { file, p1 } => {
             day2::day2(&std::fs::read_to_string(file)?, p1);
+        }
+        Command::D3 { file, p1 } => {
+            day3::day3(&std::fs::read_to_string(file)?, p1);
         }
     }
     Ok(())
