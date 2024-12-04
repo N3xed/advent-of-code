@@ -18,7 +18,7 @@ fn is_safe_levels(levels: impl IntoIterator<Item = u32>) -> bool {
     is_safe
 }
 
-pub fn day2(data: &str, p1: bool) {
+pub fn day2(data: &str, p1: bool) -> i64 {
     let result: usize = data
         .lines()
         .filter_map(|l| {
@@ -41,7 +41,7 @@ pub fn day2(data: &str, p1: bool) {
                     let mut safe = false;
                     for i in 0..levels.len() {
                         let slice_a = &levels[0..i];
-                        let slice_b = &levels[i+1..];
+                        let slice_b = &levels[i + 1..];
 
                         if is_safe_levels(slice_a.iter().chain(slice_b).copied()) {
                             safe = true;
@@ -55,5 +55,5 @@ pub fn day2(data: &str, p1: bool) {
         })
         .sum();
 
-    println!("Result {result}");
+    result as i64
 }

@@ -7,7 +7,7 @@ enum Inst {
 
 const KEYWORDS: [&'static str; 3] = ["don't", "do", "mul"];
 
-pub fn day3(data: &str, p1: bool) {
+pub fn day3(data: &str, p1: bool) -> i64 {
     if p1 {
         let result: isize = data
             .split("mul")
@@ -32,8 +32,7 @@ pub fn day3(data: &str, p1: bool) {
                 Some(lhs * rhs)
             })
             .sum();
-        println!("Result {result}");
-        return;
+        return result as i64;
     }
 
     let mut chunks = Vec::<(Inst, &str)>::new();
@@ -107,5 +106,5 @@ pub fn day3(data: &str, p1: bool) {
             }
         })
         .sum();
-    println!("Result {result}");
+    result as i64
 }

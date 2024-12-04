@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub fn day1(data: &str, p1: bool) {
+pub fn day1(data: &str, p1: bool) -> i64 {
     let (mut l_nums, mut r_nums): (Vec<_>, Vec<_>) = data
         .lines()
         .filter_map(|l| {
@@ -24,7 +24,7 @@ pub fn day1(data: &str, p1: bool) {
             .map(|(l, r)| l.abs_diff(r))
             .sum();
 
-        println!("Result {result}");
+        return result as i64;
     } else {
         let mut r_nums_hash = HashMap::<u32, usize>::new();
         for n in r_nums {
@@ -37,6 +37,6 @@ pub fn day1(data: &str, p1: bool) {
             .map(|n| (n as usize) * r_nums_hash.get(&n).unwrap_or(&0))
             .sum();
 
-        println!("Result {result}");
+        return result as i64;
     }
 }
