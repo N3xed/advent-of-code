@@ -12,6 +12,7 @@ mod day7;
 mod day8;
 mod day9;
 mod day10;
+mod day11;
 
 use day1::day1;
 use day2::day2;
@@ -23,6 +24,7 @@ use day7::day7;
 use day8::day8;
 use day9::day9;
 use day10::day10;
+use day11::day11;
 
 #[derive(Parser)]
 struct Args {
@@ -52,7 +54,8 @@ fn main() -> anyhow::Result<()> {
         Some(7) => day7(&data, args.p1),
         Some(8) => day8(&data, args.p1),
         Some(9) => day9(&data, args.p1),
-        Some(10) | None => day10(&data, args.p1),
+        Some(10) => day10(&data, args.p1),
+        Some(11) | None => day11(&data, args.p1),
         Some(d) => anyhow::bail!("day {d} not implemented"),
     };
 

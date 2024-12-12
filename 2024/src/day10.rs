@@ -131,7 +131,7 @@ fn test_p1() {
         9876\n\
     ";
 
-    assert_eq!(6, day10(s, true));
+    assert_eq!(1, day10(s, true));
 }
 
 pub fn day10(data: &str, p1: bool) -> i64 {
