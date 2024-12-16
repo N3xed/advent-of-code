@@ -7,31 +7,31 @@ struct Square {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-struct Pos(i32, i32);
-impl Pos {
-    fn is_in_bounds(self, width: usize, height: usize) -> bool {
+pub struct Vec2(pub i32, pub i32);
+impl Vec2 {
+    pub fn is_in_bounds(self, width: usize, height: usize) -> bool {
         (self.x() as i64) < (width as i64)
             && (self.y() as i64) < (height as i64)
             && self.x() >= 0
             && self.y() >= 0
     }
 
-    fn to_idx(self, width: usize) -> usize {
+    pub fn to_idx(self, width: usize) -> usize {
         (self.0 as usize) + (self.1 as usize) * width
     }
 
-    fn offset(&self, x: i32, y: i32) -> Pos {
-        Pos(self.x() + x, self.y() + y)
+    pub fn offset(&self, x: i32, y: i32) -> Vec2 {
+        Vec2(self.x() + x, self.y() + y)
     }
 
-    fn x(&self) -> i32 {
+    pub fn x(&self) -> i32 {
         self.0
     }
-    fn y(&self) -> i32 {
+    pub fn y(&self) -> i32 {
         self.1
     }
 
-    fn neighbors(&self) -> impl Iterator<Item = (Self, Dir)> {
+    pub fn neighbors(&self) -> impl Iterator<Item = (Self, Dir)> {
         [
             (self.offset(0, -1), Dir::Up),
             (self.offset(1, 0), Dir::Right),
@@ -53,7 +53,7 @@ struct Plot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Dir {
+pub enum Dir {
     Up,
     Right,
     Down,
@@ -61,7 +61,8 @@ enum Dir {
 }
 
 impl Dir {
-    fn turn(self) -> Dir {
+    /// Turn this direction 90° clockwise.
+    pub fn turn(self) -> Dir {
         match self {
             Self::Up => Self::Right,
             Self::Right => Self::Down,
@@ -73,7 +74,7 @@ impl Dir {
 
 #[derive(Debug)]
 struct Side {
-    pos: Pos,
+    pos: Vec2,
     dir: Dir,
 }
 
@@ -85,7 +86,7 @@ fn find_plots(squares: &[Square], width: usize, height: usize) -> Vec<Plot> {
     let mut sides = Vec::new();
     for y in 0..height {
         for x in 0..width {
-            let pos = Pos(x as i32, y as i32);
+            let pos = Vec2(x as i32, y as i32);
             let idx = pos.to_idx(width);
 
             let sq = unsafe { squares.get_unchecked(idx).clone() };
