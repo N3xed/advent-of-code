@@ -66,7 +66,8 @@ fn main() -> anyhow::Result<()> {
         Some(11) => day11(&data, args.p1),
         Some(12) => day12(&data, args.p1),
         Some(13) => day13(&data, args.p1),
-        Some(14) | None => day14(&data, args.p1),
+        Some(14) => day14(&data, args.p1),
+        Some(15) | None => day15(&data, args.p1),
         Some(d) => anyhow::bail!("day {d} not implemented"),
     };
 
