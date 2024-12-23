@@ -4,14 +4,6 @@ use itertools::Itertools;
 
 use crate::day12::{Dir, Vec2};
 
-impl Vec2 {
-    fn offset_vec(mut self, offset: Vec2) -> Self {
-        self.0 += offset.0;
-        self.1 += offset.1;
-        self
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Tile {
     Wall,

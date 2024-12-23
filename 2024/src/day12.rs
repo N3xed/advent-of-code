@@ -24,6 +24,12 @@ impl Vec2 {
         Vec2(self.x() + x, self.y() + y)
     }
 
+    pub fn offset_vec(mut self, offset: Vec2) -> Self {
+        self.0 += offset.0;
+        self.1 += offset.1;
+        self
+    }
+
     pub fn x(&self) -> i32 {
         self.0
     }
@@ -68,6 +74,24 @@ impl Dir {
             Self::Right => Self::Down,
             Self::Down => Self::Left,
             Self::Left => Self::Up,
+        }
+    }
+
+    pub fn opposite(self) -> Dir {
+        match self {
+            Self::Up => Self::Down,
+            Self::Right => Self::Left,
+            Self::Down => Self::Up,
+            Self::Left => Self::Right,
+        }
+    }
+
+    pub fn into_vec2(self) -> Vec2 {
+        match self {
+            Self::Up => Vec2(0, -1),
+            Self::Right => Vec2(1, 0),
+            Self::Down => Vec2(0, 1),
+            Self::Left => Vec2(-1, 0),
         }
     }
 }
