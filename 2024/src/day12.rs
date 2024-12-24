@@ -17,7 +17,7 @@ impl Vec2 {
     }
 
     pub fn to_idx(self, width: usize) -> usize {
-        (self.0 as usize) + (self.1 as usize) * width
+        (self.0 as usize).saturating_add((self.1 as usize).saturating_mul(width))
     }
 
     pub fn offset(&self, x: i32, y: i32) -> Vec2 {
