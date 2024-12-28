@@ -48,6 +48,7 @@ pub mod shortest_path {
         }
     }
 
+    #[derive(Debug, Clone)]
     pub struct ShortestPath {
         map: Vec<Node>,
         width: usize,
@@ -66,7 +67,7 @@ pub mod shortest_path {
         }
 
         /// Find all shortest paths between [`Self::start`] and all empty tiles in the map.
-        pub fn calc<T>(&mut self, obst_map: &Vec<Loc<T>>)
+        pub fn calc<T>(&mut self, obst_map: &[Loc<T>])
         where
             T: Clone + Eq,
         {
@@ -139,6 +140,31 @@ pub mod shortest_path {
             positions.push((self.start, 0));
             positions.reverse();
             positions
+        }
+
+        /// Get the path from [`Self::start`] to `end` as a series
+        /// (point, number of steps at that point, next travel direction) pairs.
+        pub fn get_path_and_dirs(&self, end: Vec2) -> Option<Vec<(Vec2, u32, Dir)>> {
+            let mut pos = end;
+            let start = self.start;
+            let width = self.width;
+            let height = self.height;
+            let mut last_dir = Dir::Up;
+            let mut positions = Vec::new();
+            while (pos.x() != start.x() || pos.y() != start.y()) && pos.is_in_bounds(width, height)
+            {
+                let idx = pos.to_idx(width);
+                let (dir, steps) = *self.map[idx].0.iter().min_by_key(|(_, s)| s).unwrap();
+                if steps == u32::MAX {
+                    return None;
+                }
+                positions.push((pos, steps, last_dir));
+                last_dir = dir.opposite();
+                pos = pos.offset_vec(dir.into_vec2());
+            }
+            positions.push((self.start, 0, last_dir));
+            positions.reverse();
+            Some(positions)
         }
 
         /// Fill the map with the found path from [`Self::start`] to `end`.
