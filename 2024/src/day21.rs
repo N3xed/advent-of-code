@@ -8,36 +8,65 @@ enum NumPadBtn {
 }
 
 pub mod dijkstra {
-    use std::collections::{hash_map::Entry, HashMap};
+    use std::{
+        collections::{hash_map::Entry, HashMap},
+        marker::PhantomData,
+    };
 
-    pub trait Node: Sized {
-        fn neighbors(&self) -> impl Iterator<Item = (Self, i32)>;
+    use itertools::Itertools;
+    use smallvec::{smallvec, SmallVec};
+
+    pub trait Node<T = ()>: Sized {
+        fn neighbors(&self, context: &'_ T) -> impl Iterator<Item = (Self, i32)>;
     }
 
-    pub struct ShortestPath<N: Eq + Clone + std::hash::Hash> {
-        // Graph of Node and (distance, visited status).
-        graph: HashMap<N, (i32, bool, N)>,
+    pub struct ShortestPath<N> {
+        // Graph of Node and (distance, visited status, came_from nodes).
+        graph: HashMap<N, (i32, bool, SmallVec<[N; 1]>)>,
         start: N,
+        eval_all: bool,
     }
 
+    #[allow(dead_code)]
     impl<N: Eq + Clone + std::hash::Hash> ShortestPath<N> {
         pub fn new(start: N) -> Self {
             Self {
                 graph: HashMap::new(),
                 start,
+                eval_all: false,
             }
         }
 
-        pub fn calc<'a>(&mut self, mut is_end: Option<impl FnMut(&N) -> bool>) -> Option<N>
+        pub fn new_eval_all(start: N) -> Self {
+            Self {
+                graph: HashMap::new(),
+                start,
+                eval_all: true,
+            }
+        }
+
+        pub fn calc<'a, C>(
+            &mut self,
+            context: &C,
+            mut is_end: impl FnMut(&N, i32) -> bool,
+        ) -> Box<[N]>
         where
             N: 'a,
-            N: Node,
+            N: Node<C>,
             N: std::fmt::Debug,
         {
-            let Self { graph, start } = self;
+            let Self {
+                graph,
+                start,
+                eval_all,
+            } = self;
+            let eval_all = *eval_all;
 
             let mut candidates = vec![(start.clone(), 0_i32)];
-            graph.insert(start.clone(), (0, false, start.clone()));
+            graph.insert(start.clone(), (0, false, smallvec![start.clone()]));
+
+            let mut end_nodes = HashMap::new();
+            let mut last_end_dist = None;
 
             loop {
                 let Some((idx, _)) = candidates
@@ -45,7 +74,7 @@ pub mod dijkstra {
                     .enumerate()
                     .min_by_key(|(_, (_, dist))| dist)
                 else {
-                    break None;
+                    break;
                 };
                 let (node, dist) = candidates.swap_remove(idx);
                 // The node must be already in the graph, since it is a candidate.
@@ -56,15 +85,25 @@ pub mod dijkstra {
                 *visited = true;
 
                 // If we're considering the end node, we're done.
-                if is_end.as_mut().map_or(false, |v| v(&node)) {
-                    break Some(node);
+                if is_end(&node, dist) {
+                    if !eval_all {
+                        if let Some(last_end_dist) = last_end_dist {
+                            if last_end_dist < dist {
+                                break;
+                            }
+                        }
+                        last_end_dist = Some(dist);
+                    }
+                    end_nodes.insert(node.clone(), dist);
                 }
 
-                for (neighbor, cost) in node.neighbors() {
+                for (neighbor, cost) in node.neighbors(context) {
+                    let new_dist = dist + cost;
                     let (mut entry, existed) = match graph.entry(neighbor) {
-                        Entry::Vacant(ve) => {
-                            (ve.insert_entry((i32::MAX, false, node.clone())), false)
-                        }
+                        Entry::Vacant(ve) => (
+                            ve.insert_entry((new_dist, false, smallvec![node.clone()])),
+                            false,
+                        ),
                         Entry::Occupied(oe) => (oe, true),
                     };
                     let (n_dist, visited, came_from) = entry.get_mut();
@@ -72,39 +111,89 @@ pub mod dijkstra {
                         continue;
                     }
 
-                    let new_dist = dist + cost;
-                    if existed && *n_dist > new_dist {
-                        *n_dist = new_dist;
-                        *came_from = node.clone();
+                    if existed {
+                        if *n_dist > new_dist {
+                            *n_dist = new_dist;
+                            *came_from = smallvec![node.clone()];
+                        } else if *n_dist == new_dist && !came_from.contains(&node) {
+                            came_from.push(node.clone());
+                        }
                     }
 
                     candidates.push((entry.key().clone(), new_dist));
                 }
             }
+
+            end_nodes
+                .into_iter()
+                .sorted_by_key(|(_, d)| *d)
+                .map(|(n, _)| n)
+                .collect()
         }
 
-        pub fn path<'a>(&'a self, end: &'a N) -> Option<(Vec<&'a N>, i32)>
+        pub fn dist_at(&self, node: &N) -> Option<i32> {
+            Some(self.graph.get(node)?.0)
+        }
+
+        pub fn paths<'a, C>(&'a self, end: &'a [N]) -> impl Iterator<Item = (Vec<&'a N>, i32)>
         where
-            N: Node,
+            N: Node<C> + std::hash::Hash + Eq,
         {
-            let (k, v) = self.graph.get_key_value(&end)?;
-            let dist = v.0;
-            let mut path = vec![k];
+            struct Iter<'b, N, C> {
+                this: &'b ShortestPath<N>,
+                end: &'b N,
+                path_states: HashMap<&'b N, usize>,
+                _ctx: PhantomData<C>,
+            }
 
-            while let Some(n) = path.last() {
-                if **n == self.start {
-                    break;
-                }
+            impl<'b, N2, C2> Iterator for Iter<'b, N2, C2>
+            where
+                N2: Node<C2> + std::hash::Hash + Eq,
+            {
+                type Item = (Vec<&'b N2>, i32);
 
-                if let Some((_, _, came_from)) = self.graph.get(n) {
-                    path.push(came_from);
-                } else {
-                    break;
+                fn next(&mut self) -> Option<Self::Item> {
+                    let Self {
+                        this,
+                        end,
+                        path_states,
+                        ..
+                    } = self;
+
+                    let (k, v) = this.graph.get_key_value(&end)?;
+                    let dist = v.0;
+                    let mut path = vec![k];
+
+                    while let Some(n) = path.last() {
+                        if **n == this.start {
+                            break;
+                        }
+
+                        if let Some((_, _, came_from)) = this.graph.get(n) {
+                            if came_from.len() > 1 {
+                                let idx = path_states.entry(n).or_default();
+                                let next_node = came_from.get(*idx)?;
+                                *idx += 1;
+                                path.push(next_node);
+                            } else {
+                                path.push(came_from.first().unwrap());
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    path.reverse();
+                    Some((path, dist))
                 }
             }
 
-            path.reverse();
-            Some((path, dist))
+            end.iter().flat_map(|end| Iter {
+                this: self,
+                end,
+                path_states: HashMap::new(),
+                _ctx: PhantomData,
+            })
         }
     }
 }
@@ -284,7 +373,7 @@ pub fn day21(data: &str, _p1: bool) -> i64 {
         }
 
         impl<'a> dijkstra::Node for SeqNode<'a> {
-            fn neighbors<'b>(&'b self) -> impl Iterator<Item = (SeqNode<'a>, i32)>
+            fn neighbors<'b>(&'b self, _: &()) -> impl Iterator<Item = (SeqNode<'a>, i32)>
             where
                 Self: 'a,
             {
@@ -304,10 +393,9 @@ pub fn day21(data: &str, _p1: bool) -> i64 {
             DirPadBtn::A,
             code as &[NumPadBtn],
         ));
-        let n = sp.calc(Some(|n: &SeqNode| n.4.len() == 0));
+        let n = sp.calc(&(), |n: &SeqNode, _| n.4.len() == 0);
 
-        let n = n.unwrap();
-        let (p, _dist) = sp.path(&n).unwrap();
+        let (p, _dist) = sp.paths(&n).next().unwrap();
 
         let seq = p.iter().map(|n| n.3).skip(1).join("");
 

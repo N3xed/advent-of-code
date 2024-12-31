@@ -6,7 +6,7 @@ struct Square {
     visited: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
 pub struct Vec2(pub i32, pub i32);
 impl Vec2 {
     pub fn is_in_bounds(self, width: usize, height: usize) -> bool {
@@ -60,7 +60,7 @@ struct Plot {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Dir {
-    Up,
+    Up = 0,
     Right,
     Down,
     Left,
@@ -75,6 +75,17 @@ impl Dir {
             Self::Down => Self::Left,
             Self::Left => Self::Up,
         }
+    }
+
+    pub const ALL: [Dir; 4] = [Self::Up, Self::Right, Self::Down, Self::Left];
+    pub const N: usize = 4;
+
+    pub fn turn_n(self, times: i32) -> Dir {
+        let mut idx = ((self as i32) + times) % (Self::N as i32);
+        if idx < 0 {
+            idx = (Self::N as i32) + idx;
+        }
+        Self::ALL[idx as usize]
     }
 
     pub fn opposite(self) -> Dir {
