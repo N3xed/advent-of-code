@@ -3,7 +3,30 @@ use std::{num::NonZeroUsize, path::PathBuf};
 use anyhow::Context;
 use clap::Parser;
 
-mod day1;
+macro_rules! days {
+    ($($d:literal),*; $last_d:literal) => {
+        paste::paste!{
+            $(
+                mod [<day $d>];
+            )*
+            mod [<day $last_d>];
+        }
+
+        fn run_day(day: Option<usize>, data: &str, p1: bool) -> anyhow::Result<Box<dyn std::fmt::Display + '_>> {
+            paste::paste!{
+                Ok(match day {
+                    $(
+                        Some($d) => Box::new([<day $d>]::run(data, p1)),
+                    )*
+                    Some($last_d) | None => Box::new([<day $last_d>]::run(data, p1)),
+                    Some(d) => anyhow::bail!("day {d} not implemented")
+                })
+            }
+        }
+    };
+}
+
+days!(1; 2);
 
 #[derive(Parser)]
 struct Args {
@@ -23,11 +46,7 @@ fn main() -> anyhow::Result<()> {
     let data = std::fs::read_to_string(&args.file)
         .with_context(|| format!("file '{}' not found", args.file.display()))?;
 
-    let result: Box<dyn std::fmt::Display> = match args.day.map(|v| v.into()) {
-        Some(1) | None => Box::new(day1::run(&data, args.p1)),
-        Some(d) => anyhow::bail!("day {d} not implemented"),
-    };
-
+    let result = run_day(args.day.map(Into::into), &data, args.p1)?;
     println!("result = {result}");
     Ok(())
 }

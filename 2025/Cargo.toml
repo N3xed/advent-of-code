@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 clap = { version = "4.5.53", features = ["derive"] }
+paste = "1.0.15"
