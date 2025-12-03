@@ -26,7 +26,7 @@ macro_rules! days {
     };
 }
 
-days!(1; 2);
+days!(1, 2; 3);
 
 #[derive(Parser)]
 struct Args {
